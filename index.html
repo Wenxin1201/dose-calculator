@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>恩那度司他剂量调整计算器</title>
+  <style>
+    body {
+      font-family: 'Microsoft YaHei', Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .maintain {
+      background-color: #ffffcc;
+      border: 1px solid #e6e600;
+    }
+    .increase {
+      background-color: #d9f2d9;
+      border: 1px solid #5cd65c;
+    }
+    .decrease {
+      background-color: #cce0ff;
+      border: 1px solid #3385ff;
+    }
+    .stop {
+      background-color: #ffcccc;
+      border: 1px solid #ff6666;
+    }
+    .rule-table {
+      margin-top: 30px;
+      overflow-x: auto;
+    }
+    .rule-table table td.maintain {
+      background-color: #ffffcc;
+    }
+    .rule-table table td.increase {
+      background-color: #d9f2d9;
+    }
+    .rule-table table td.decrease {
+      background-color: #cce0ff;
+    }
+    .rule-table table td.stop {
+      background-color: #ffcccc;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #f2f2f2;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    .tab.active {
+      background-color: #3498db;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .history-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>恩那度司他剂量调整计算器</h1>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="calculator">剂量计算</div>
+      <div class="tab" data-tab="history">患者历史</div>
+      <div class="tab" data-tab="rules">调整规则</div>
+    </div>
+    
+    <div id="calculator" class="tab-content active">
+      <div class="form-group">
+        <label for="patientId">患者ID:</label>
+        <input type="text" id="patientId" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="visitDate">访视日期:</label>
+        <input type="date" id="visitDate" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="currentHb">当前Hb值 (g/L):</label>
+        <input type="number" id="currentHb" min="0" max="200" step="0.1" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="currentDose">当前剂量水平:</label>
+        <select id="currentDose">
+          <option value="1">1级 (最低剂量)</option>
+          <option value="2">2级</option>
+          <option value="3" selected>3级 (标准剂量)</option>
+          <option value="4">4级</option>
+          <option value="5">5级 (最高剂量)</option>
+        </select>
+      </div>
+      
+      <button id="calculateBtn">计算剂量调整</button>
+      
+      <div id="resultArea" style="display:none;">
+        <div id="result" class="result"></div>
+      </div>
+    </div>
+    
+    <div id="history" class="tab-content">
+      <div class="form-group">
+        <label for="historyPatientId">查询患者ID:</label>
+        <input type="text" id="historyPatientId">
+        <button id="searchHistoryBtn" style="width:100%">查询</button>
+      </div>
+      
+      <div class="history-list">
+        <table id="historyTable">
+          <thead>
+            <tr>
+              <th>访视日期</th>
+              <th>Hb值 (g/L)</th>
+              <th>Hb变化 (g/L)</th>
+              <th>调整前剂量</th>
+              <th>剂量调整</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div id="rules" class="tab-content">
+      <h2>恩那度司他片剂量调整规则</h2>
+      <div class="rule-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Hb浓度 (g/L)</th>
+              <th>ΔHb ≤ -5</th>
+              <th>-5 < ΔHb ≤ 0</th>
+              <th>0 < ΔHb ≤ 5</th>
+              <th>5 < ΔHb ≤ 20</th>
+              <th>ΔHb > 20</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Hb ≥ 130</td>
+              <td class="stop" colspan="5">暂停给药</td>
+            </tr>
+            <tr>
+              <td>120 < Hb < 130</td>
+              <td class="maintain">维持剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+            </tr>
+            <tr>
+              <td>115 < Hb ≤ 120</td>
+              <td class="maintain">维持剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+            </tr>
+            <tr>
+              <td>105 ≤ Hb ≤ 115</td>
+              <td class="maintain">维持剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+            </tr>
+            <tr>
+              <td>100 ≤ Hb < 105</td>
+              <td class="increase">升高一个剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+            </tr>
+            <tr>
+              <td>Hb < 100</td>
+              <td class="increase">升高一个剂量</td>
+              <td class="increase">升高一个剂量</td>
+              <td class="maintain">维持剂量</td>
+              <td class="decrease">降低一个剂量</td>
+              <td class="decrease">降低一个剂量</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h3>说明：</h3>
+      <ol>
+        <li>每4周进行一次剂量调整审查</li>
+        <li>剂量调整应逐级进行，不能跨越临近剂量</li>
+        <li>如果两次Hb值差值>20g/L，应下调一个剂量水平</li>
+        <li>如果使用最低剂量时Hb水平相较于前次访视的变化>20g/L，则终止治疗</li>
+        <li>暂停给药后，每2周监测一次Hb直至确认恢复治疗，在确认Hb<120g/L后，较暂停前降低1个剂量水平恢复治疗</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    // 存储患者数据
+    let patientsData = {};
+    
+    // 切换标签页
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // 计算剂量调整
+    document.getElementById('calculateBtn').addEventListener('click', function() {
+      const patientId = document.getElementById('patientId').value.trim();
+      const visitDate = document.getElementById('visitDate').value;
+      const currentHb = parseFloat(document.getElementById('currentHb').value);
+      const currentDose = parseInt(document.getElementById('currentDose').value);
+      
+      if (!patientId || !visitDate || isNaN(currentHb)) {
+        alert('请填写所有必填字段！');
+        return;
+      }
+      
+      // 初始化患者数据
+      if (!patientsData[patientId]) {
+        patientsData[patientId] = [];
+      }
+      
+      // 获取前一次和4周前的Hb值
+      const patientHistory = patientsData[patientId];
+      const prevVisit = patientHistory.length > 0 ? patientHistory[patientHistory.length - 1] : null;
+      
+      // 找到4周前的访视记录
+      let fourWeeksAgoVisit = null;
+      if (patientHistory.length > 0) {
+        const currentDateObj = new Date(visitDate);
+        for (let i = patientHistory.length - 1; i >= 0; i--) {
+          const visitDateObj = new Date(patientHistory[i].visitDate);
+          const diffTime = Math.abs(currentDateObj - visitDateObj);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays >= 28) {  // 约4周
+            fourWeeksAgoVisit = patientHistory[i];
+            break;
+          }
+        }
+      }
+      
+      // 计算Hb变化
+      let deltaHb = null;
+      if (fourWeeksAgoVisit) {
+        deltaHb = currentHb - fourWeeksAgoVisit.hb;
+      } else if (prevVisit) {
+        // 如果没有4周前的记录但有前一次记录，也计算变化量
+        deltaHb = currentHb - prevVisit.hb;
+      }
+      
+      // 判断剂量调整
+      let adjustment = '';
+      let adjustmentClass = '';
+      
+      // 特殊规则：如果Hb >= 130，暂停给药
+      if (currentHb >= 130) {
+        adjustment = '暂停给药';
+        adjustmentClass = 'stop';
+      } 
+      // 特殊规则：如果Hb变化>20 g/L，降低一个剂量
+      else if (deltaHb !== null && deltaHb > 20) {
+        if (currentDose === 1) {
+          adjustment = '终止治疗 (最低剂量下Hb变化>20g/L)';
+          adjustmentClass = 'stop';
+        } else {
+          adjustment = '降低一个剂量 (Hb变化>20g/L)';
+          adjustmentClass = 'decrease';
+        }
+      }
+      // 首次访视或没有历史数据
+      else if (deltaHb === null) {
+        if (currentHb < 100) {
+          adjustment = '升高一个剂量';
+          adjustmentClass = 'increase';
+        } else {
+          adjustment = '维持剂量';
+          adjustmentClass = 'maintain';
+        }
+      }
+      // 根据表格规则判断
+      else {
+        if (currentHb >= 120 && currentHb < 130) {
+          if (deltaHb <= 0) {
+            adjustment = '维持剂量';
+            adjustmentClass = 'maintain';
+          } else {
+            adjustment = '降低一个剂量';
+            adjustmentClass = 'decrease';
+          }
+        } else if (currentHb > 115 && currentHb <= 120) {
+          if (deltaHb <= 0) {
+            adjustment = '维持剂量';
+            adjustmentClass = 'maintain';
+          } else {
+            adjustment = '降低一个剂量';
+            adjustmentClass = 'decrease';
+          }
+        } else if (currentHb >= 105 && currentHb <= 115) {
+          if (deltaHb <= 5) {
+            adjustment = '维持剂量';
+            adjustmentClass = 'maintain';
+          } else {
+            adjustment = '降低一个剂量';
+            adjustmentClass = 'decrease';
+          }
+        } else if (currentHb >= 100 && currentHb < 105) {
+          if (deltaHb <= -5) {
+            adjustment = '升高一个剂量';
+            adjustmentClass = 'increase';
+          } else if (deltaHb > -5 && deltaHb <= 5) {
+            adjustment = '维持剂量';
+            adjustmentClass = 'maintain';
+          } else {
+            adjustment = '降低一个剂量';
+            adjustmentClass = 'decrease';
+          }
+        } else if (currentHb < 100) {
+          if (deltaHb <= 0) {
+            adjustment = '升高一个剂量';
+            adjustmentClass = 'increase';
+          } else if (deltaHb > 0 && deltaHb <= 5) {
+            adjustment = '维持剂量';
+            adjustmentClass = 'maintain';
+          } else {
+            adjustment = '降低一个剂量';
+            adjustmentClass = 'decrease';
+          }
+        }
+      }
+      
+      // 存储本次记录
+      patientsData[patientId].push({
+        visitDate: visitDate,
+        hb: currentHb,
+        deltaHb: deltaHb,
+        preDose: currentDose,
+        adjustment: adjustment
+      });
+      
+      // 显示结果
+      const resultDiv = document.getElementById('result');
+      resultDiv.className = 'result ' + adjustmentClass;
+      resultDiv.innerHTML = `
+        <p>患者ID: ${patientId}</p>
+        <p>访视日期: ${visitDate}</p>
+        <p>当前Hb值: ${currentHb} g/L</p>
+        ${deltaHb !== null ? `<p>Hb变化量: ${deltaHb.toFixed(1)} g/L</p>` : ''}
+        <p>当前剂量水平: ${currentDose}级</p>
+        <p>剂量调整建议: <strong>${adjustment}</strong></p>
+      `;
+      
+      document.getElementById('resultArea').style.display = 'block';
+      
+      // 保存到localStorage
+      localStorage.setItem('patientsData', JSON.stringify(patientsData));
+    });
+    
+    // 查询患者历史
+    document.getElementById('searchHistoryBtn').addEventListener('click', function() {
+      const patientId = document.getElementById('historyPatientId').value.trim();
+      const historyTableBody = document.getElementById('historyTableBody');
+      historyTableBody.innerHTML = '';
+      
+      if (!patientId || !patientsData[patientId]) {
+        historyTableBody.innerHTML = '<tr><td colspan="5">未找到该患者记录</td></tr>';
+        return;
+      }
+      
+      const patientHistory = patientsData[patientId];
+      patientHistory.forEach(record => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${record.visitDate}</td>
+          <td>${record.hb}</td>
+          <td>${record.deltaHb !== null ? record.deltaHb.toFixed(1) : '首次访视'}</td>
+          <td>${record.preDose}级</td>
+          <td>${record.adjustment}</td>
+        `;
+        historyTableBody.appendChild(row);
+      });
+    });
+    
+    // 加载保存的数据
+    window.addEventListener('load', function() {
+      const savedData = localStorage.getItem('patientsData');
+      if (savedData) {
+        patientsData = JSON.parse(savedData);
+      }
+    });
+  </script>
+</body>
+</html>
